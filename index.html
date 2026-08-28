@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daftar Hadir &amp; Hasil Pretest — Adab kepada Allah</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --card: #ffffff;
+    --fg: #1f2328;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #355e3b;
+    --accent-soft: #e8f0e9;
+    --ok: #2f6b3a;
+    --ok-bg: #e6f2e8;
+    --pending: #75642a;
+    --pending-bg: #f6f1dd;
+    --mark: #fde9a9;
+    --shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  header h1 { font-size: 1.35rem; margin: 0 0 .25rem; font-weight: 650; }
+  .stats {
+    display: flex; gap: .5rem; flex-wrap: wrap;
+    margin: 1rem 0 0;
+    font-size: .85rem;
+  }
+  .stats span {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 999px; padding: .15rem .7rem; color: var(--muted);
+  }
+  .stats b { color: var(--fg); font-weight: 600; }
+  .toolbar { display: flex; gap: .5rem; margin: 1.5rem 0 .75rem; align-items: center; }
+  #search {
+    flex: 1; padding: .55rem .8rem; font-size: .95rem;
+    border: 1.5px solid var(--accent); border-radius: 8px;
+    background: var(--card); color: var(--fg); outline: none;
+  }
+  #search:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+  #refresh {
+    padding: .55rem .9rem; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--card); color: var(--muted); cursor: pointer; font-size: .9rem;
+  }
+  #refresh:hover { color: var(--fg); border-color: var(--accent); }
+  h2 { font-size: 1rem; margin: 2.25rem 0 .75rem; letter-spacing: .02em; color: var(--accent); }
+  #error {
+    display: none; margin-top: 1rem; padding: .8rem 1rem;
+    background: #fbe9e7; border: 1px solid #e8b4ad; border-radius: 8px; color: #8c2f24;
+    font-size: .9rem;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th { text-align: left; color: var(--muted); font-weight: 550; font-size: .78rem;
+       text-transform: uppercase; letter-spacing: .04em; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
+  td { padding: .5rem .6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr.row { cursor: pointer; }
+  tr.row:hover { background: var(--accent-soft); }
+  td.no { color: var(--muted); width: 2.2rem; }
+  .jab-line { font-size: .76rem; color: var(--muted); margin-top: .1rem; }
+  .badge {
+    display: inline-block; font-size: .72rem; font-weight: 600;
+    padding: .12rem .55rem; border-radius: 999px; white-space: nowrap;
+  }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.pending { background: var(--pending-bg); color: var(--pending); }
+  tr.detail > td { padding: 0 .6rem .6rem 3.4rem; border-bottom: 1px solid var(--border); background: transparent; }
+  tr.detail[hidden] { display: none; }
+  .detail-inner { font-size: .84rem; color: var(--muted); }
+  .detail-inner b { color: var(--fg); font-weight: 550; }
+  .detail-inner a { color: var(--accent); text-decoration: none; }
+  .detail-inner a:hover { text-decoration: underline; }
+  mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+  .dup { font-size: .7rem; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 .35rem; margin-left: .3rem; }
+
+  .tabs { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .8rem; }
+  .tab {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .45rem .85rem; font-size: .85rem; cursor: pointer; font-family: inherit;
+    background: var(--card); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  .tab:hover { color: var(--fg); }
+  .tab[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--fg); font-weight: 600; }
+  .tab .n { font-size: .7rem; background: var(--border); color: var(--muted); border-radius: 999px; padding: .05rem .45rem; }
+  .tab[aria-selected="true"] .n { background: var(--accent); color: var(--card); }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+  .panel .q { font-size: .95rem; font-weight: 650; margin: 0 0 .9rem; }
+  .ans { padding: .6rem .35rem; border-top: 1px solid var(--border); }
+  .ans:first-of-type { border-top: none; padding-top: 0; }
+  .ans .who { font-size: .85rem; font-weight: 600; }
+  .ans .jab { font-size: .76rem; color: var(--muted); margin-left: .45rem; font-weight: 400; }
+  .ans .when { font-size: .74rem; color: var(--muted); margin-left: .45rem; font-weight: 400; }
+  .ans .when::before { content: '·'; margin-right: .35rem; }
+  .ans .a { font-size: .88rem; white-space: pre-wrap; word-break: break-word; margin-top: .15rem; }
+  .ans .a.empty { color: var(--muted); font-style: italic; }
+  .ans.flash { background: var(--accent-soft); border-radius: 6px; }
+  footer { margin-top: 3rem; font-size: .78rem; color: var(--muted); }
+  footer a { color: var(--accent); word-break: break-all; }
+  .empty-state { color: var(--muted); font-size: .9rem; padding: 1rem 0; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Daftar Hadir &amp; Hasil Pretest</h1>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div id="error"></div>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="Cari nama peserta…" autofocus autocomplete="off">
+    <button id="refresh" title="Muat data terbaru">⟳ Muat ulang</button>
+  </div>
+
+  <h2>Daftar Peserta &amp; Kehadiran</h2>
+  <table>
+    <thead><tr><th>No</th><th>Nama</th><th>Status</th></thead>
+    <tbody id="tbody"><tr><td colspan="3" class="empty-state">Memuat data…</td></tr></tbody>
+  </table>
+
+  <h2>Hasil Pretest</h2>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Pertanyaan pretest"></div>
+  <div id="panels"></div>
+
+  <footer>
+    Sumber: <a href="https://opensheet.elk.sh/13379WmB7Vi9tOH4f54P3OoJeVYh4wW23GMtY4OKv5dc/peserta">sheet peserta</a>
+    · <a href="https://opensheet.elk.sh/13379WmB7Vi9tOH4f54P3OoJeVYh4wW23GMtY4OKv5dc/form">sheet form</a>
+    — dimuat <span id="loadedAt">—</span>. Data dapat tersimpan di cache server hingga beberapa menit.
+  </footer>
+</main>
+
+<script>
+const SHEET = '13379WmB7Vi9tOH4f54P3OoJeVYh4wW23GMtY4OKv5dc';
+const URL_PESERTA = 'https://opensheet.elk.sh/' + SHEET + '/peserta';
+const URL_FORM    = 'https://opensheet.elk.sh/' + SHEET + '/form';
+
+// Whitelist pertanyaan esai yang ditampilkan (persis judul kolom di sheet)
+const PRETEST_QUESTIONS = [
+  'Apa inti dari adab kepada Allah?',
+  'Apa kunci kesuksesan mengajarkan adab kepada peserta didik?',
+  'Apa ciri peserta didik yang beradab kepada Allah?',
+];
+
+const norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+// "8/28/2026 10:50:57" → epoch ms (format Google Sheet, bukan ISO)
+function parseTs(s) {
+  const [d, t] = (s || '').split(' ');
+  if (!d) return 0;
+  const [mo, dy, yr] = d.split('/').map(Number);
+  const [h = 0, mi = 0, se = 0] = (t || '').split(':').map(Number);
+  return new Date(yr, mo - 1, dy, h, mi, se).getTime();
+}
+
+function fmtTs(ms) {
+  if (!ms) return '—';
+  const d = new Date(ms);
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+       + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+}
+
+const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+async function loadData() {
+  // NB: opensheet.elk.sh menolak query parameter apa pun (400) — jangan tambah cache-buster.
+  const get = u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  const [pesertaRaw, formRaw] = await Promise.all([get(URL_PESERTA), get(URL_FORM)]);
+
+  const peserta = pesertaRaw.filter(o => o && o.Nama).sort((a, b) => (+a.No || 9e9) - (+b.No || 9e9));
+
+  const byName = new Map();     // nama ternorm → respons Timestamp terbaru
+  const submitCount = new Map();
+  for (const r of formRaw) {
+    const k = norm(r.Nama);
+    if (!k) continue;
+    submitCount.set(k, (submitCount.get(k) || 0) + 1);
+    const cur = byName.get(k);
+    if (!cur || parseTs(r.Timestamp) > parseTs(cur.Timestamp)) byName.set(k, r);
+  }
+
+  const registered = new Set(peserta.map(p => norm(p.Nama)));
+  const yatim = [...byName.keys()].filter(k => !registered.has(k)); // ada di form, tak ada di sheet peserta
+
+  return { peserta, byName, submitCount, yatim };
+}
+
+function highlight(text, q) {
+  if (!q) return esc(text);
+  const i = norm(text).indexOf(q);
+  if (i < 0) return esc(text);
+  return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
+}
+
+let DATA = null;
+let activeTab = 0;
+
+function render() {
+  const { peserta, byName, submitCount, yatim } = DATA;
+  const q = norm(document.getElementById('search').value);
+
+  // --- statistik ---
+  const nHadir = peserta.filter(p => byName.has(norm(p.Nama))).length + yatim.length;
+  document.getElementById('stats').innerHTML =
+    '<span><b>' + peserta.length + '</b> peserta terdaftar</span>' +
+    '<span><b>' + nHadir + '</b> mengisi form hadir</span>' +
+    '<span><b>' + (peserta.length - nHadir + yatim.length) + '</b> belum hadir/mengisi</span>';
+
+  // --- Section A: daftar hadir ---
+  let rows = '';
+  const all = peserta.concat(yatim.map(k => ({ No: '', Nama: byName.get(k).Nama, Jabatan: '(tidak terdaftar di sheet peserta)', _yatim: true })));
+  all.forEach((p, idx) => {
+    if (q && !norm(p.Nama).includes(q)) return;
+    const resp = byName.get(norm(p.Nama));
+    const badge = resp
+      ? '<span class="badge ok">Hadir</span>'
+      : '<span class="badge pending">Belum hadir/mengisi</span>';
+    const dupN = submitCount.get(norm(p.Nama)) || 1;
+    rows +=
+      '<tr class="row" data-idx="' + idx + '" data-name="' + esc(norm(p.Nama)) + '">' +
+        '<td class="no">' + esc(p.No) + '</td>' +
+        '<td>' + highlight(p.Nama, q) + (dupN > 1 ? '<span class="dup">' + dupN + '×</span>' : '') +
+          '<div class="jab-line">' + esc(p.Jabatan || '—') + '</div></td>' +
+        '<td>' + badge + '</td>' +
+      '</tr>';
+    if (resp) {
+      const links = PRETEST_QUESTIONS.map((_, qi) =>
+        '<a href="#" onclick="return showAnswer(event,' + qi + ',' + idx + ')">J' + (qi + 1) + '</a>').join(' ');
+      rows +=
+        '<tr class="detail" id="d-' + idx + '" hidden><td colspan="3"><div class="detail-inner">' +
+          '<b>Kehadiran:</b> ' + esc(resp['Kehadiran'] || '—') +
+          ' &nbsp;<b>Waktu isi:</b> ' + fmtTs(parseTs(resp.Timestamp)) +
+          ' &nbsp;<b>Jawaban pretest:</b> ' + links +
+        '</div></td></tr>';
+    } else {
+      rows +=
+        '<tr class="detail" id="d-' + idx + '" hidden><td colspan="3"><div class="detail-inner">' +
+          'Belum mengisi form hadir.' +
+        '</div></td></tr>';
+    }
+  });
+  document.getElementById('tbody').innerHTML =
+    rows || '<tr><td colspan="3" class="empty-state">Tidak ada peserta yang cocok.</td></tr>';
+
+  document.querySelectorAll('tr.row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const d = document.getElementById('d-' + tr.dataset.idx);
+      if (d) d.hidden = !d.hidden;
+    });
+  });
+
+  // --- Section B: satu tab per pertanyaan; tiap tab berisi jawaban semua responden ---
+  const respondents = all.map((p, idx) => ({ p, idx, resp: byName.get(norm(p.Nama)) })).filter(r => r.resp);
+  if (activeTab >= PRETEST_QUESTIONS.length) activeTab = 0;
+
+  document.getElementById('tabs').innerHTML = PRETEST_QUESTIONS.map((question, qi) => {
+    const n = respondents.filter(r => (String(r.resp[question] || '').trim())).length;
+    return '<button class="tab" role="tab" id="tab-' + qi + '" aria-selected="' + (qi === activeTab) + '"' +
+      ' aria-controls="panel-' + qi + '" tabindex="' + (qi === activeTab ? '0' : '-1') + '"' +
+      ' data-tab="' + qi + '">Pertanyaan ' + (qi + 1) + '<span class="n">' + n + ' jawaban</span></button>';
+  }).join('');
+
+  document.getElementById('panels').innerHTML = PRETEST_QUESTIONS.map((question, qi) => {
+    let body;
+    if (!respondents.length) {
+      body = '<div class="empty-state">Belum ada respons pretest.</div>';
+    } else {
+      body = respondents.map(r => {
+        const ans = String(r.resp[question] || '').trim();
+        return '<div class="ans" id="ans-' + qi + '-' + r.idx + '">' +
+          '<span class="who">' + esc(r.p.Nama) + '</span>' +
+          (r.p.Jabatan ? '<span class="jab">' + esc(r.p.Jabatan) + '</span>' : '') +
+          '<span class="when">' + fmtTs(parseTs(r.resp.Timestamp)) + '</span>' +
+          '<div class="a' + (ans ? '' : ' empty') + '">' + (ans ? esc(ans) : '— belum dijawab') + '</div>' +
+        '</div>';
+      }).join('');
+    }
+    return '<div class="panel" role="tabpanel" id="panel-' + qi + '" aria-labelledby="tab-' + qi + '"' +
+      (qi === activeTab ? '' : ' hidden') + ' tabindex="0"><div class="q">' + esc(question) + '</div>' + body + '</div>';
+  }).join('');
+
+  document.querySelectorAll('.tab').forEach(tb => {
+    tb.addEventListener('click', () => selectTab(+tb.dataset.tab));
+    tb.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const d = e.key === 'ArrowRight' ? 1 : -1;
+        selectTab((activeTab + d + PRETEST_QUESTIONS.length) % PRETEST_QUESTIONS.length, true);
+      }
+    });
+  });
+}
+
+function selectTab(qi, focus) {
+  activeTab = qi;
+  for (let i = 0; i < PRETEST_QUESTIONS.length; i++) {
+    const tb = document.getElementById('tab-' + i), pn = document.getElementById('panel-' + i);
+    if (!tb || !pn) continue;
+    tb.setAttribute('aria-selected', i === qi);
+    tb.tabIndex = i === qi ? 0 : -1;
+    pn.hidden = i !== qi;
+  }
+  if (focus) document.getElementById('tab-' + qi).focus();
+}
+
+// Lompat dari Section A ke jawaban peserta tertentu di tab pertanyaan qi
+function showAnswer(e, qi, idx) {
+  e.preventDefault();
+  selectTab(qi);
+  const el = document.getElementById('ans-' + qi + '-' + idx);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1500);
+  }
+  return false;
+}
+
+async function load() {
+  const err = document.getElementById('error');
+  err.style.display = 'none';
+  document.getElementById('tbody').innerHTML = '<tr><td colspan="3" class="empty-state">Memuat data…</td></tr>';
+  try {
+    DATA = await loadData();
+    document.getElementById('loadedAt').textContent = new Date().toLocaleTimeString('id-ID');
+    render();
+  } catch (e) {
+    err.textContent = 'Gagal memuat data (' + e.message + '). Periksa koneksi lalu klik Muat ulang.';
+    err.style.display = 'block';
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="3" class="empty-state">Data tidak tersedia.</td></tr>';
+  }
+}
+
+document.getElementById('search').addEventListener('input', () => { if (DATA) render(); });
+document.getElementById('refresh').addEventListener('click', load);
+window.addEventListener('DOMContentLoaded', () => { load(); document.getElementById('search').focus(); });
+</script>
+</body>
+</html>
