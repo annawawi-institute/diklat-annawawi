@@ -3,7 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daftar Hadir &amp; Hasil Pretest — Adab kepada Allah</title>
+<title>Rekap Seminar Sosialisasi Pendidikan — Adab</title>
+<!--
+  ============================================================
+  REKAP SEMINAR — PANDUAN UPDATE (manual)
+  ============================================================
+  File ini MEMBAWA data sendiri: isi CSV tertanam di blok
+  <script type="text/plain" id="csv-data"> di bawah.
+
+  Cara update data:
+  1. Buka file ini di editor teks (VS Code / Notepad).
+  2. Cari blok <script type="text/plain" id="csv-data"> ... </script>
+  3. Ganti ISI blok tersebut dengan isi CSV terbaru
+     (PENDAFTARAN SEMINAR - FR.csv). Biarkan tag pembuka & penutup.
+     Header kolom harus tetap:
+     Submission ID,Respondent ID,Submitted at,Nama,ayah/bunda,
+     Regional Tempat Anak @ayah/bunda Belajar?,Kehadiran,
+     Bersama siapa @ayah/bunda datang?,
+     Bagaimana @ayah/bunda mengajarkan adab selama ini?,
+     Apa saja masalah atau tantangan ... saat ini?,
+     Bagaimana menurut @ayah/bunda tentang mendidik adab anak yang baik?
+  4. Simpan. Semua rekapitulasi & klaster jawaban dihitung ulang
+     otomatis oleh halaman. Tidak ada yang perlu diubah lagi.
+
+  Catatan klaster:
+  - Jawaban terbuka dikelompokkan berdasarkan kata kunci (aturan ada
+    di variabel CLUSTERS di bagian <script> terakhit). Satu jawaban
+    boleh masuk lebih dari satu klaster.
+  - Jawaban ganda (teks sama, kasus berbeda) digabung dengan tanda ×N.
+  ============================================================
+-->
 <style>
   :root {
     --bg: #fafafa;
@@ -15,8 +44,8 @@
     --accent-soft: #e8f0e9;
     --ok: #2f6b3a;
     --ok-bg: #e6f2e8;
-    --pending: #75642a;
-    --pending-bg: #f6f1dd;
+    --warn: #75642a;
+    --warn-bg: #f6f1dd;
     --mark: #fde9a9;
     --shadow: 0 1px 2px rgba(0,0,0,.04);
   }
@@ -29,11 +58,8 @@
   }
   main { max-width: 900px; margin: 0 auto; padding: 2rem 1rem 4rem; }
   header h1 { font-size: 1.35rem; margin: 0 0 .25rem; font-weight: 650; }
-  .stats {
-    display: flex; gap: .5rem; flex-wrap: wrap;
-    margin: 1rem 0 0;
-    font-size: .85rem;
-  }
+  .sub { color: var(--muted); font-size: .9rem; margin: 0 0 .25rem; }
+  .stats { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0 0; font-size: .85rem; }
   .stats span {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 999px; padding: .15rem .7rem; color: var(--muted);
@@ -46,11 +72,7 @@
     background: var(--card); color: var(--fg); outline: none;
   }
   #search:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
-  #refresh {
-    padding: .55rem .9rem; border: 1px solid var(--border); border-radius: 8px;
-    background: var(--card); color: var(--muted); cursor: pointer; font-size: .9rem;
-  }
-  #refresh:hover { color: var(--fg); border-color: var(--accent); }
+  .note { font-size: .76rem; color: var(--muted); }
   h2 { font-size: 1rem; margin: 2.25rem 0 .75rem; letter-spacing: .02em; color: var(--accent); }
   #error {
     display: none; margin-top: 1rem; padding: .8rem 1rem;
@@ -58,29 +80,20 @@
     font-size: .9rem;
   }
 
-  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-  th { text-align: left; color: var(--muted); font-weight: 550; font-size: .78rem;
-       text-transform: uppercase; letter-spacing: .04em; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
-  td { padding: .5rem .6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
-  tr.row { cursor: pointer; }
-  tr.row:hover { background: var(--accent-soft); }
-  td.no { color: var(--muted); width: 2.2rem; }
-  .jab-line { font-size: .76rem; color: var(--muted); margin-top: .1rem; }
-  .badge {
-    display: inline-block; font-size: .72rem; font-weight: 600;
-    padding: .12rem .55rem; border-radius: 999px; white-space: nowrap;
+  /* ---- rekapitulasi ---- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .6rem; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: .7rem .85rem; box-shadow: var(--shadow);
   }
-  .badge.ok { background: var(--ok-bg); color: var(--ok); }
-  .badge.pending { background: var(--pending-bg); color: var(--pending); }
-  tr.detail > td { padding: 0 .6rem .6rem 3.4rem; border-bottom: 1px solid var(--border); background: transparent; }
-  tr.detail[hidden] { display: none; }
-  .detail-inner { font-size: .84rem; color: var(--muted); }
-  .detail-inner b { color: var(--fg); font-weight: 550; }
-  .detail-inner a { color: var(--accent); text-decoration: none; }
-  .detail-inner a:hover { text-decoration: underline; }
-  mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
-  .dup { font-size: .7rem; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 .35rem; margin-left: .3rem; }
+  .card .num { font-size: 1.45rem; font-weight: 700; color: var(--accent); }
+  .card .lbl { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .card.hl .num { color: var(--fg); }
+  .card.sub { background: var(--accent-soft); border-color: #cfe0d3; }
+  .card.sub .num { font-size: 1.15rem; }
+  .card.sub .lbl { color: var(--accent); }
 
+  /* ---- tab pertanyaan ---- */
   .tabs { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .8rem; }
   .tab {
     display: inline-flex; align-items: center; gap: .45rem;
@@ -92,256 +105,530 @@
   .tab[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--fg); font-weight: 600; }
   .tab .n { font-size: .7rem; background: var(--border); color: var(--muted); border-radius: 999px; padding: .05rem .45rem; }
   .tab[aria-selected="true"] .n { background: var(--accent); color: var(--card); }
+
   .panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
-  .panel .q { font-size: .95rem; font-weight: 650; margin: 0 0 .9rem; }
-  .ans { padding: .6rem .35rem; border-top: 1px solid var(--border); }
-  .ans:first-of-type { border-top: none; padding-top: 0; }
+  .panel .q { font-size: .95rem; font-weight: 650; margin: 0 0 .35rem; }
+  .panel .method { font-size: .78rem; color: var(--muted); margin: 0 0 1rem; }
+  .summary { background: var(--accent-soft); border: 1px solid #cfe0d3; border-left: 3px solid var(--accent); border-radius: 8px; padding: .8rem .95rem; margin: 0 0 1rem; }
+  .summary h3 { margin: 0 0 .45rem; font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+  .summary p { margin: 0 0 .4rem; font-size: .85rem; line-height: 1.55; }
+  .summary p:last-child { margin-bottom: 0; }
+  .summary ul { margin: .2rem 0 .5rem; padding-left: 1.15rem; }
+  .summary li { font-size: .83rem; line-height: 1.5; margin: .15rem 0; }
+  .summary .src { margin-top: .5rem; font-size: .7rem; color: var(--muted); }
+  .notanswered { font-size: .8rem; color: var(--muted); margin-top: .9rem; padding-top: .6rem; border-top: 1px dashed var(--border); }
+
+  .cluster { border: 1px solid var(--border); border-radius: 8px; margin: .6rem 0; background: #fcfcfb; }
+  .cluster > summary {
+    list-style: none; cursor: pointer; display: flex; align-items: center; gap: .6rem;
+    padding: .6rem .8rem; font-size: .9rem; font-weight: 600;
+  }
+  .cluster > summary::-webkit-details-marker { display: none; }
+  .cluster > summary::before { content: '▸'; color: var(--accent); font-size: .8rem; }
+  .cluster[open] > summary::before { content: '▾'; }
+  .cluster .n { font-size: .72rem; font-weight: 500; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .08rem .5rem; white-space: nowrap; }
+  .cluster .pct { margin-left: auto; font-size: .72rem; color: var(--muted); font-weight: 400; }
+  .cluster .bar { height: 4px; background: var(--border); border-radius: 999px; margin: 0 .8rem; overflow: hidden; }
+  .cluster .bar i { display: block; height: 100%; background: var(--accent); }
+  .ans { padding: .55rem .8rem; border-top: 1px solid var(--border); }
+  .ans:first-of-type { border-top: none; }
   .ans .who { font-size: .85rem; font-weight: 600; }
-  .ans .jab { font-size: .76rem; color: var(--muted); margin-left: .45rem; font-weight: 400; }
   .ans .when { font-size: .74rem; color: var(--muted); margin-left: .45rem; font-weight: 400; }
-  .ans .when::before { content: '·'; margin-right: .35rem; }
-  .ans .a { font-size: .88rem; white-space: pre-wrap; word-break: break-word; margin-top: .15rem; }
+  .ans .a { font-size: .88rem; white-space: pre-wrap; word-break: break-word; margin-top: .15rem; color: var(--fg); }
   .ans .a.empty { color: var(--muted); font-style: italic; }
-  .ans.flash { background: var(--accent-soft); border-radius: 6px; }
-  footer { margin-top: 3rem; font-size: .78rem; color: var(--muted); }
-  footer a { color: var(--accent); word-break: break-all; }
+  .ans .dupn { font-size: .7rem; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 .35rem; margin-left: .3rem; }
   .empty-state { color: var(--muted); font-size: .9rem; padding: 1rem 0; }
+  footer { margin-top: 3rem; font-size: .78rem; color: var(--muted); }
+  footer code { font-size: .72rem; background: var(--border); padding: .05rem .3rem; border-radius: 4px; }
 </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>Daftar Hadir &amp; Hasil Pretest</h1>
+    <h1>Rekap Seminar Sosialisasi Pendidikan</h1>
+    <p class="sub">Pendaftaran &amp; jawaban form responden (adab) — data tertanam dalam file ini.</p>
     <div class="stats" id="stats"></div>
   </header>
 
   <div id="error"></div>
   <div class="toolbar">
-    <input id="search" type="search" placeholder="Cari nama peserta…" autofocus autocomplete="off">
-    <button id="refresh" title="Muat data terbaru">⟳ Muat ulang</button>
+    <input id="search" type="search" placeholder="Cari nama peserta…" autocomplete="off">
+    <span class="note">saring klaster jawaban</span>
   </div>
 
-  <h2>Daftar Peserta &amp; Kehadiran</h2>
-  <table>
-    <thead><tr><th>No</th><th>Nama</th><th>Status</th></thead>
-    <tbody id="tbody"><tr><td colspan="3" class="empty-state">Memuat data…</td></tr></tbody>
-  </table>
+  <h2>Rekapitulasi</h2>
+  <div class="cards" id="cards"></div>
 
-  <h2>Hasil Pretest</h2>
-  <div class="tabs" id="tabs" role="tablist" aria-label="Pertanyaan pretest"></div>
+  <h2>Rekap Jawaban Terbuka</h2>
+  <p class="note" style="margin-top:-.5rem">Jawaban dikelompokkan otomatis berdasarkan kata kunci; satu jawaban boleh masuk beberapa klaster, dan jawaban dengan teks yang sama digabung (tanda ×N). Semua klaster terlipat — klik judul klaster untuk membuka.</p>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Pertanyaan terbuka"></div>
   <div id="panels"></div>
 
   <footer>
-    Sumber: <a href="https://opensheet.elk.sh/13379WmB7Vi9tOH4f54P3OoJeVYh4wW23GMtY4OKv5dc/peserta">sheet peserta</a>
-    · <a href="https://opensheet.elk.sh/13379WmB7Vi9tOH4f54P3OoJeVYh4wW23GMtY4OKv5dc/form">sheet form</a>
-    — dimuat <span id="loadedAt">—</span>. Data dapat tersimpan di cache server hingga beberapa menit.
+    Sumber data: <code>PENDAFTARAN SEMINAR - FR.csv</code> — dimuat tertanam <span id="loadedAt">—</span> ·
+    Rentang pengisian: <span id="dateRange">—</span>.<br>
+    Update data: ganti isi blok <code>&lt;script id="csv-data"&gt;</code> di file ini dengan CSV terbaru, lalu simpan (panduan lengkap ada di komentar atas file).
   </footer>
 </main>
 
+<script type="text/plain" id="csv-data">
+Submission ID,Respondent ID,Submitted at,Nama,ayah/bunda,Regional Tempat Anak @ayah/bunda Belajar?,Kehadiran,Bersama siapa @ayah/bunda datang?,Bagaimana @ayah/bunda mengajarkan adab selama ini?,Apa saja masalah atau tantangan berkaitan dengan adab yang sedang dihadapi @ayah/bunda saat ini?,Bagaimana menurut @ayah/bunda tentang mendidik adab anak yang baik?
+PRg7ypQ,obNWjzX,2026-09-18 10:19:49,Tuniyah,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Menjelaskan sesering mungkin, mencontoh kan",Harus sering di ingatkan,"Di ajarkan bagaimana adab yg baik,di contoh kan,dan di biasakan"
+X5gpk64,VL7geaE,2026-09-18 10:27:11,Hikmah eli hartika,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Memberi tahu dan mencontohkan hal2 baik,Alhamdulillah tidak ada,Memberi tahu hal yg boleh dan tidak boleh di lakukan atau di bicarakan
+OQg6N9p,EkV94ZB,2026-09-18 10:57:23,Eva,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Meengajaarkan sesuai syariat dan sunnah yang dicontohkan Rasulullah ,Anak yang kritis dan rasa ingin tahu yang tinggi,Sesuai syariat dan sunnah 
+LDgelWz,1A0qPjp,2026-09-18 11:12:44,Dessy karmila,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Dengan memberikan pengajaran kpd anak dan mencontohkan nya, ",-,-
+aOyR7J9,gDPKDy4,2026-09-18 11:19:37,Maryani ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,"keteladanan langsung, konsistensi dalam pembiasaan sehari-hari, serta pendekatan yang penuh kasih sayang",Pengaruh teman sebaya di luar rumah dapat meruntuhkan kebiasaan baik yang sudah diajarkan di rumah,Mendidik adab anak yang baik dimulai dari memberi teladan nyata dan pembiasaan sehari-hari di rumah
+bZDa9D2,9q0bZ01,2026-09-18 11:49:58,Siti Nur Halimah (Ummu Afifah_ 1C),Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah, , , 
+LDg87Gz,9q0bZ01,2026-09-18 11:52:36,Siti Nur Halimah (Ummu Afifah _1C),Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah, ,"
+","
+"
+1Wxjd2g,81D7ZkA,2026-09-18 11:53:05,Farah Aprilia Maharani,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,"Mau minta sesuatu, mintanya ke Allah dengan cara berdo'a. Melakukan ibadah semua karena Allah, ikhlas tdk mengeluh.","Cara berbicara anak2, volume suaranya tinggi dan blak blakan.","Dengan cara mencontohkan langsung, anak2 akan meneladani apa yang orangtuanya kerjakan."
+GegMrak,pbq8Lz8,2026-09-18 12:18:17,Yuyun Yuliani,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Alhamdulillah membiasakan setiap harinya ,Anak seringkali tidak mendengar dan suka terpengaruh dengan lingkungan ,Demgan dicontohkan dari orangtua terlebih dahulu
+o9pJ77e,2EdQLgp,2026-09-18 12:36:21,Nining M ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Dengan memberikan contoh dalam perilaku sehari2, memberikan pengertian, menjelaskan mana yg boleh dan tidak. 
+Memberikan apresiasi jika berbuat baik, memberikan penjelasan jika melakukan hal yg tdk baik.","1. Pertengkaran antara adik dan kakak.
+2. Anak yg blm bisa memanage emosi","Komitmen antara ayah dan bunda dalam mendidik anak. 
+Ada aturan jika melanggar, ada alresiasi jika mnuruti aturan. 
+Memberikan contoh yg baik di lingkungan rumah
+"
+2jZ2VEL,VL72vRE,2026-09-18 13:11:00,Siti Julaeha,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Kami senantiasa mengingatkan, adab sebelum ilmu, jadi adab itu harus didahulukan sebelum menimba ilmu, karena dengan adab yang baik, seseorang akan diberkahi Allah ta'ala dalam menimba ilmu, antara lain dalam beribadah, Adab kita kepada Allah ta'ala, dalam menimba ilmu, adab kita kepada guru, juga teman, jika dirumah adab kepada orangtua, adab kepada sesama saudara,dan lainnya","Masalah pembiasaan dan  pengulangan yang terus emenerus diajarkan, serta tantangannya harua lebih sabar dalam mendidik dan membersamai anak anak","Mendidik anak yang baik tidak sekedar menasehati, akan tetapi orangtua menjadi rolemodel, melakukan keteladanan, pembiasaan dalam kehidupan sehari-hari , arahan berupa aturan aturan yang baik dan tidak baik dengan kasih sayang, dan jg ketegasan."
+bZD05Ko,ja4dl96,2026-09-18 20:37:14,Yuni Astutiningsih ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Membacakan buku terkait adab, memberikan contoh dan menjelaskan ke anak-anak","Untuk saat ini karena ananda sudah mulai banyak teman di sekolah dan di tempat les jadi terkadang ada hal-hal yang ke ikut kebawa, sehingga perlu diingatkan dan dijelaskan misal ada adab yang tidak benar",Menjadikan Rasulullah shallallahu 'alaihi wa salam sebagai contoh 
+RWg7JPd,QK9gBql,2026-09-18 22:06:14,Puspita Intan Sari ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,Paling utama dengan memberikan contoh langsung dan arahan langsung one on one kepada anak tentang adab ada yang baik. ,Emosional dari diri sendiri dengan kemampuan anak dalam mencerna informasi masih belum memahami sepenuhnya dikarena usia anak yang masih kecil.,Sangat penting karena berkaitan dengan hubungan antar manusia. Cerminan adab anak di rumah harus sama ketika anak diluar rumah.
+dbp5RjA,ODqpkNK,2026-09-18 23:11:09,Muhammad Nurfajri Jihaduddin,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Bunda,"Saya berusaha mengajarkan adab melalui contoh dalam kehidupan sehari-hari. Membiasakan mengucapkan salam, berkata jujur, menghormati guru, menyayangi teman, menjaga kebersihan, dan beradab kepada Al-Qur'an. Saya percaya anak lebih mudah meniru apa yang ia lihat daripada hanya mendengar nasihat.","Tantangan terbesar adalah menjaga konsistensi antara adab di rumah dan di sekolah. Pengaruh lingkungan, pertemanan, dan dalam muamalah antar keluarga juga menjadi tantangan. Sebagai ayah, saya masih terus belajar untuk lebih sabar, kompak dengan ibu, dan bekerja sama dengan sekolah dalam membiasakan adab yang baik.","Menurut saya, adab adalah pondasi sebelum ilmu. Anak tidak cukup hanya pintar, tetapi juga harus memiliki akhlak yang baik kepada Allah, orang tua, guru, dan sesama. Peran orang tua dan sekolah saling melengkapi agar adab menjadi kebiasaan yang tertanam sejak kecil."
+e5pdbKe,Y5BEB50,2026-09-19 0:59:35,Yannika,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Melalui pengajaran di rumah, teladan, buku, dll",Adab anak kepada orang tua,Sangat penting sebagai hal yang utama harus di tanamkan sejak dini kepada anak.
+Ar0VZQD,vG676ag,2026-09-19 1:07:40,Nurunnisa Ahmad Yusra ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Pembiasaan rutin dan melalui kisah para nabi dan sahabatnya,Mengelola hubungan antara kaka dan adik agar senantiasa rukun dan mengedepankan kesantunan. Tantangannya adalah membimbing mereka untuk secara alami mempraktikkan adab bergaul dan saling menghargai saat berinteraksi setiap hari dirumah,Sesuai Al Quran dan As Sunnah
+gbpyjv4,xXbkW2G,2026-09-19 1:36:12,Syafrina Idha Jumaila ,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Melalui ucapan langsung, contoh perilaku, buku","Anak tidak selalu mengikuti apa yg dicontohkan. Menurut pengamatan kecil saya, dalam diri anak juga sudah ada keinginan dan ingin mengikuti apa yg diinginkan sendiri ",Wajib
+VpdRjpJ,EkVj2eL,2026-09-19 2:03:44,Ferial,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Memberitahu ke anak2 lewat nasehat tentang adab dan membacakan buku2 cerita tentang adab yang baik.,"Sering mencontoh teman atau orang2 yg kurang baik adabnya terutama adab kepada teman, guru dan orang yang lebih tua.",Kita harus mendidik adab anak yg baik dimanapun berada.
+Ar0oBPW,XxAVXyL,2026-09-19 2:27:04,Euis Suryani,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Dengan menasihati dan melatihnya. bagaiman dia bersikap kpdnorangtua, kakak, teman, saat di sekolah, saat di mesjid,  dan mengajarkan doa"" disetiap kegiatan ",pengaruh teman teman yg kurang baik dr sikap dan tutur kata,"Dimulai dari rmh, dgn mencontohkan adab"" yg baik, seperti adab"" berdo'a sblm melakukan kegiatan. misal adab mkn, mau tidur, mau ke mesjid, berangkat sekolah"
+6D9bOyO,D4R2B4q,2026-09-19 3:47:40,Andy,Ayah,INIS Cibinong,ONLINE (Zoom dan Youtube),,Dengan memberikan contoh dan nasehat nasehat. Kadang disertai dengan dalil tapi jarang. ,Sulit memahami emosi anak sesuai umurnya. Kadang membuat kita tidak sabar juga,"Dengan memberikan contoh, jadi role model atau teladan untuk anak. "
+WJgGebN,686JeQo,2026-09-19 4:04:57,Dini Prizkasari,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Membacakan buku kepada anak tentang adab sambil memberi pengarahan&berusaha menjadi teladan kepada ananda tentang adab sehari-hari,Lingkungan keluarga dan teman-teman ananda yang belum sejalan dengan pengajaran adab di rumah,Memahamkan sekaligus memberikan teladan untuk ananda dalam belajar adab baik di rumah maupun di sekolah
+yXGK0Ag,MejKDrE,2026-09-19 4:05:02,Zurmainis,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Dengan keseharian.. ,Kadangnanak kalau dibilangin seringnmembentak atau merengek ,Dengan sabar
+WJgGjgk,686JKbP,2026-09-19 4:36:26,Mutya ratih,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Lebih ke contoh langsung kepada anak , jadi anak bisa merekam dan meniru",Paling anaknya yang kadang keras kepala ,"Menanamkan tauhid 
+Pendekatan secara emosional dengan anak
+Mengawasi pergaulan
+Menjadi uswah atau mencontohkan anak"
+NqgKEkW,Np25W1l,2026-09-19 5:10:51,Resti,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Di mulai dari kami kedua orang tua untuk memberikan contoh adab di rumah ,terkadang buku yang dipelajari disekolah kami pelajari kembali sehingga kami ikut menerapkan nya ","Adab yang terlihat dilingkungan luar  rumah yang terkadang saat anak"" bermain dengan seusia nya  ,","Dengan cara meneladani akhlak nabi Muhammad, sedikit demi sedikit kami amalkan "
+X5ylx1g,rj8ykRo,2026-09-19 7:23:20,Desy Ary Sandy ,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"mengajari anak dengan cara mempraktikan dan selalu mengingatkan adab sehari2 misalnya adab makan, adab masuk rumah dll",masalah yg sering terjadi adalah anak suka lupa adab yg sering dikerjakan namun ada juga adab2 yg mrka kerjakan tanpa diingatkan ,mencontoh
+laZDalX,KYrQkJV,2026-09-19 7:30:00,Ega Elita Choes Hermadiana ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,berusaha sebaik mungkin,"Menahan emosi dlm membersamai anak2. Hafshah serung usil ke adiknya, suka meledek adiknya. Tp kalau sy lihat di sekolah, dia tidak begitu ke teman2nya. Apakah itu wajar?","Anak mengerti bagaimana menghormati kepada yg lebih tua, mengayomi kepada yang lebih muda, tanpa merendahkan marwah dirinya sendiri"
+J1YKq7Y,5BaKVlN,2026-09-19 7:41:12,Ersa aprilian kartika,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,Mengajarkan sesuai syariat dan sunnah sunnah,Di era digital banyaknya faktor dari luar yang tidak sesuai,Mendidik agar takut dengan allah dan mengenalkan tauhid sedari kecil
+yXkZAP6,RGqGKqv,2026-09-19 10:44:13,Irni Fitriani,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Terlepas dari segala kekurangan yang kami miliki.sebagai orang tua.kami berusaha menasehati dan mencontohkan sebisa yang kami bisa,"Anak kami yang sulit bersabar dalam hal apapun,tantrum,cengeng",Sebagai Orngtua hrs mencontohkan  kpd anak dn hrs lebih bersabar dlm mendidik anak dlm berprilaku
+o9QDNKe,ODxaNW7,2026-09-20 6:00:17,Asiyah,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Baik,Ketika sudah terkontaminasi oleh lingkungan yang tidak baik,Dengan memberikan tauladan yang baik
+je2bNE1,zx8jaXR,2026-09-20 6:54:36,Rika Novayanti,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Melalui buku-buku cerita, kisah-kisah nabi, menetapkan aturan-aturan dan berusaha memberikan contoh.",Hubungan adik kakak yang sering tidak akur,Penting
+4adJab5,zx8NE10,2026-09-20 7:41:05,Rindra Faturohman,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Bunda,Dengan sholat,Suka menjawab apabila sdg dikasih nasihat,Harusnya sih di pesantren agar adabnya mencontoh rasullah
+Gey96xZ,MejD1qX,2026-09-20 7:42:34,Wijayanti ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Sesuai kemampuan /ilmu yg di miliki,Mengajarkan adab kepada anak,Belum tau
+q5eDLv9,lb8qBbN,2026-09-20 7:46:29,Siti Dawiyah,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,"Membiasakan menghormati orang yg lebih tua
+Agar selalu Melaksanakan shalat 5 waktu",Sering terjadi perdebatan,"Alhamdulillaah sangat penting, dimana siswa wajib berahklak mulia "
+0V5B8RA,ja8b6MJ,2026-09-20 8:08:52,Maryam Jameelah,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Melalui pembiasaan sehari-hari, memberikan contoh",Ananda kurang bisa meregulasi emosi,"Adab anak sesuatu yang sifatnya jangka panjang, tidak bisa sebatas dilihat di usia dini, tetapi juga harus dibiasakan hingga dewasa dan menjadi bagian dari akhlak ananda"
+5X5jZKo,pbYdy0q,2026-09-20 8:10:13,Asty,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,In shaa allah masih berproses,"Permasalahan tentang HP 
+Tentang pergaulan",Perlu perjuangan antara kedua ortu tapi memang tidak semudah itu karena tidak semua org tua atau pasangan bisa menyesuaikan 
+LDy7G1l,6.86E+287,2026-09-20 8:44:45,Desy Nurfathiyyah,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Melalui buku dan bercerita,Lingkungan dan tontonan yg kurang mendukung,"Mendidik melalui teladan baik di rumah maupun di sekolah 
+Memberi nasehat dan reward bila anak beradab baik "
+2j5ak9V,rj8ykRo,2026-09-20 8:49:37,Yogie Winarno,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Bunda,dengan mencontoh,anak yg tidak konsisten,dengan lemah lembut
+LDy70Vz,ja8byZR,2026-09-20 8:55:10,Nurholilah ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Alhamdulillah, pelan2 insyaAllah bisa",Harus banyak sabar dalam mengajarkan anak tetang adab ,Dengan mengajarkan tauhid kepada anak 
+7X5Lobz,ob8Dylx,2026-09-20 8:58:37,Nurul Ridha ,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Dengan memberikan contoh atau perilaku yang baik sebagai orang Tua, khususnya  ibu",Pergaulan anak diluar rumah,"Kolaborasi antara perilaku orang tua dirumah, serta ilmu yang diajarkan disekolah"
+yXk2vq8,5Ba4dvb,2026-09-20 9:07:29,Mery Indayani ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Memberikan contoh keteladanan yang baik kepada Ananda sejak dini serta selalu memberikan nasihat yang baik yang mudah dipahami dan sesuai dengan apa  yang diajarkan Rasulullah sallahu alaihi wa salam serta selalu mendoakan kebaikan untuk ananda.,Sejauh ini belum ada,"-Dengan memberikan contoh yang baik kepada anak.
+-memberikan nasihat dan mengajarkan adab yang sesuai dengan yang diajarkan Rasulullah 
+-dan yang terpenting selalu mendoakan kebaikan untuk anak.
+"
+Gey9J6Z,dWJNYyy,2026-09-20 9:12:10,Intan,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Melalui cerita, sounding, diingatkan dengan perkataan. Punishment berlaku bila tetap melanggar setelah diingatkan beberapa kali","Anak yg aktif, kritis, dan membandingkan dirinya dengan perilaku temannya atau yg lain","Beri contoh, dan jalani bersama "
+aOo5K5v,kd895x6,2026-09-20 9:40:21,Iis Kusumastuti,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Selalu mengikuti petunjuk para salafussolih,Pembatasan anak dengan gadget,Disesuaikan dengan umur
+yXk2jyp,Eko5LVL,2026-09-20 9:41:30,Tasha Syafina Novizar,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Dengan cara mencontohkan..
+
+Misal dengan mengucap salam ketika bertemu dengan teman ato minum dengan keadaan duduk","Anak yang malas belajar..
+
+Dan 
+
+Ingin tau dari hal yang baik dan yang uruk","Agar kelak ketika dia dewasa maka dia akan membawa adabnya ke pada dunia dengan keadaan yang baik,dan Allah dengan para malaikatnya mencatat sebagai amal kebaikan untuk di akhirat"
+PRy1vXP,QKNMdQ1,2026-09-20 9:42:03,Muhammad Rifqi Basalamah,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Bismillah
+Saya mengajarkan dengan mengarahkan terlebih dahulu. Menjelaskan bahwa nabi mengajarkan seperti itu (karena ananda sudah bisa diajak diskusi).
+Kemudian saya berusaha mengamalkan terlebih dahulu, dan memperlihatkannya di depan anadan, agar ananda mempunya role mode yang bersumber langsung dari orang tuanya","Walhamdulillah, Allah memberikan kemudahan atas segala sesuatu.
+Tantangan muncul dari lingkungan keluarga besar, dan juga dari teman-temannya di lingkungan rumah yang terkadang mempengaruhi ananda. 
+Kemudain juga dari gadget yang kita akui bersama tidak bisa terlepas juga dari kehidupan ananda keseharian","1. Memberikan contoh
+2. Menyesuaikan dengan usia dan kematangan berpikir
+3. Memberikan reward dan punishment sesaui kadar, dan sesuai yang dicontohkan Nabi Muhammad Shallallahu 'alaihi wa sallam"
+rDWaJLM,RGqdYvK,2026-09-20 9:48:28,Dian Elysa Putri,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,Sesuai dengan anjuran Rasullullah sollallahu alaihi wasalam ,Adab ketika makan dan berbicara,"Bersabar, berproses, dan terus belajar ke versi yang lebih baik dari diri yang sebelumnya."
+NqylRbG,GxOKJzp,2026-09-20 9:55:56,Hana Kulsum ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Dengan memberitahu, mengajarkan sambil memberi contoh.","Tantangannya, saat anak kita sudah terbiasa beradab yang baik, lalu kemudian melihat sepupunya atau temantemannya yang beradab kurang baik dan dibiarkan oleh orangtuanya, maka anak sering bertanya kenapa mereka boleh dan aku tidak boleh.","Mendidik adab anak yang baik tidak bisa secara instan, tapi dengan keberlanjutan.
+Dan juga tidak bisa hanya dengan lisan, tapi juga dengan pembiasaan sehari hari."
+5X5jOWM,0Qq7bA6,2026-09-20 10:17:48,Anisa Amisepti,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,Menjadi teladan yang baik untuk anak dirumah dengan berkata baik dan berperilaku sopan,Ketika anak belum mampu meregulasi emosinya dengan baik ketika tidak bisa melakukan sesuatu atau tidak mendapatkan yang dia inginkan,Perlu koordinasi dan kolaborasi yang baik antara orang tua dan pendidik di sekolah
+Gey9722,686e14e,2026-09-20 10:17:59,Nurul aini,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Dengan memberikan contoh dan buku bacaan anak anak,Lingkungan sekitar terkadang tidak sejalan ,"Secara bertahap dari kebiasaan sehari hari, dengan mencontoh rasulullah"
+q5eDgEY,PdZD2o1,2026-09-20 10:20:44,Nur ainy shofi kamilah ,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Penerapan nilai - nilai adab di ajarkan dalm setipa aktvitas sehari - hari. ,Adanya perbedaan tentang adab - adab tertentu yang berkaitan dengan syariat,Menerapkan nilai2 syariat islam dalam setiap aktifitas sehari - hari 
+Yjy0yMz,GxOKX0j,2026-09-20 10:33:04,Syifa Fauziah,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Dengan contoh kebiasaan baik dirumah ,Adab saat anak dipanggil bundanya yang terkadang tidak langsung direspon,Mengajar kan secara disiplin kebiasaan kegiatan dirumah dengan adab yang baik agar anak bisa melihat dan. Mencontoh segera langsung
+Ar52OMe,ODxlbO8,2026-09-20 10:47:22,Ummu Adam,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Melalui pendekatan kepada ananda pelan pelan memberitahu ketika melakukan sesuatu bahwa ada adabnya seperti ini dan seperti itu misalnya lalu dengan mencontohkan terlebih dahulu ,Seringkali yang menjadi tantangan ananda masih perlu diingatkan terus menerus dan butuh banyak kesabaran ,Menurut saya sangat penting dan perlu karena adab diperlukan sebelum mempelajari ilmu 
+Dqyk9VE,Eko5NX2,2026-09-20 10:49:55,Isnaini Annisa,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Melalui praktik, lisan, dan buku cerita","Adab terhadap orangtua, saat ini ananda sedang dalam fase sulit mendengarkan dan memiliki argumen sendiri ketika sedang dinasehati oleh orang tua","Menurut saya, mendidik adab anak perlu dilakukan sejak dini dan dimulai dari keteladanan orang tua di rumah. 
+
+Adab tidak cukup hanya diajarkan melalui nasihat, tetapi perlu dibiasakan dalam kehidupan sehari-hari secara konsisten dan dengan cara yang lembut.
+
+Saya berharap Ananda terbiasa menghormati orang tua dan guru, berbicara dengan sopan, menyayangi dan menghargai teman, mau meminta maaf dan berterima kasih, serta terbiasa mengikuti aturan dan bertanggung jawab atas perbuatannya.
+
+Menurut saya, kerja sama antara orang tua dan sekolah sangat penting agar pembiasaan adab yang diberikan kepada anak dapat berjalan selaras dan konsisten"
+bZGj17Z,7R7bExP,2026-09-20 11:06:37,Vivin frista sari,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Memberi tahu langsung yg benar dan salah kepada anak,Tiba-tiba anak dapat kosakata atau hal nyeleneh baru dari teman-teman sekolah,Di bicarakan baik-baik dengan anak
+dbVaJDq,ZjboeV0,2026-09-20 11:07:25,Rohmasari Harahap ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah, mengajarkan anak anak untuk selalu bersikap jujur dan tidak boleh menyakiti orang lain baik dengan Lisan maupun tangan dan mengawali dengan membaca Qur'an ,Anak anak yang selalu mengundang pekerjaan yang harus dilakukan ,Bersikap jujur dan memberikan contoh kepada mereka dan memberikan pendidikan dan memilih sekolah yang baik
+VpyQOEa,1AQkRYQ,2026-09-20 11:11:32,Septi Nuraeni ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Menasehati dan mencontohkan,"Tantangannya, lingkungan/tetangga yang kurang kondusif. Kita membatasi tontonan, dia main dengan tetangga nonton tidak dibatasi, dan bahasa nya sering kasar","Dengan pembiasaan dan contoh yang baik, juga berdoa kepada Allah agar anak kita dijaga."
+pe9y86J,GxOK4Jj,2026-09-20 11:48:53,Nisa Nurhasanah,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"mengajarkan dirumah ,dari nasehat /buku .menyekolahkan disekolah yg baik",terkadang anak anak mulai mudah terpengaruh oleh lingkungan luar yg tidak baik,"mengajari, mencontohkan dan memotivasi"
+2j5AjXe,Eko5GxN,2026-09-20 12:11:36,Nurul Annisa Safitri,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Pelan-pelan dikasih tau cara adab yang baik jikalau susah dibilangin anaknya biasanya saya aga omelin biar ngerti.. ,Sering main handphone jadi ga nurut orang tua,Berikan contoh ke anak dan sering dinasehati adab yang baik.. 
+WJdR07Q,xX8jKJo,2026-09-20 13:13:14,Irma Mizana ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,Berusaha membiasakan mengucapkan slaam saat bertemu seseorang. Baca basmallah sebelum melakukan sesuatu. Baa doa saat keluar rumah dan mau berpergian. ,Saat berbicara dan sikap kita saat berbicara masih suka sesuka hati,"Penuh tantangan dan jangan pernah berhenti membimbing dan mengajarkannya kepada anak. 
+Cara kami ya dengan membiasakan hal-hal kecil yang bain seperti jangan lupa baca basmallah sebelum melakukan sesuatu. "
+GeypYae,ob8e6GX,2026-09-20 13:42:06,Eni haerani,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,kuranģ,mendidik anak,masih kurang
+2j5N8JL,686KBMA,2026-09-21 0:59:37,Tri Yulianto,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Bunda,Dgn cara Saya belajar & menjaga adab insyaAlah kelurga & lingkungan sosial ngikut,"Di lingkungan sosial terutama , pengaruh internet terhadap adab manusia ke manusia & manusia thd Rabb nya","Anak perlu org tua yg memberi penjelasan lisan dan visual sbg contoh
+Jadi org tua harus faham betul adab yg baik agar anak tidakikut  keliru
+
+Sayang nya kajian  adab tidak sebanyak kajian ilmu
+"
+Vpy5pNy,Meja4xM,2026-09-21 1:13:54,Riawati,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Memberikan contoh langsung pada anak seperti mengucapkan kata tolong, maaf dan terimakasih, dan membiasakan adab makan dengan duduk dan tangan kanan.",Paparan gadget dan pergaulan lingkungan kurang baik,"Anak-anak meniru apa yang mereka lihat, sehingga orang tua perlu menunjukkan perilaku sopan, jujur, dan santun dalam keseharian. "
+yXk9DxX,ob826OX,2026-09-21 2:24:00,Reni,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Dengan mencontohkan kepada anak,Mediasosial,Dengan orang tua mencontohkan adab yg baik kepada anak. IsnyaAllah anak akan mengikutinya. 
+OQy509A,D4R72Zl,2026-09-21 2:26:17,Novia Hamzah ,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Dari tepatnya melaksanakan sholat fardhu, memberi dan menjawab salam bersalim dengan yg lebih tua ","Saat ini tantangan nya anak2 masih tantrum ketika posisi sedang lelah atau ngantuk , menjadikan anak2 trkadang mmbludak bebbocara dengan intonasi tinggi ",Dari muhasabah diri hingga menjadi tauladan yg baik agar anak2 menirunya 
+Vpy5Ykl,LZ4PZQG,2026-09-21 2:42:15,Nurjannah,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Selain dengan diomongin ke anaknya tentang baik buruk juga InsyaAllah lebih ke memberikan contoh,InsyaAllah gak ada kesulitan yg sangat dikhawatirkan. Cuma kadang anaknya diam aja,Memberikan contoh
+kbx67WM,0QqeV69,2026-09-21 2:45:17,Ira agustina,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,Dengan lisan dan perbuatan,"Ananda masih suka teriak-teriak saat meminta sesuatu,ananda masih berani memukul ayahnya jika tidak dituruti kemauannya. Masih sering menangis tapi tidak mengungkapkan apa yang ia inginkan.","Sangat perlu mendidik anak adab yang baik sedini mungkin,agar anak terbiasa bersikap dgn adab yang baik dan tertanam hingga ia dewasa."
+NqyWJPN,MejE1YM,2026-09-21 2:46:48,Rizkiwati ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,"Selama ini kami berusaha mengajarkan adab dengan menjadikan Rasulullah ﷺ sebagai teladan utama, sesuai firman Allah bahwa pada diri Rasul ada uswatun hasanah. 
+
+Kami mulai dari adab kepada Allah seperti membiasakan berdoa, bersyukur, dan sholat tepat waktu, adab kepada Rasulullah dengan bershalawat, serta adab kepada orang tua dan sesama dengan pembiasaan mengucap salam, berkata lembut, tolong, maaf, terima kasih.
+ 
+Kami juga mengajarkan melalui keteladanan,membaca kisah para Nabi dan sahabat, serta membiasakan sunnah-sunnah harian seperti adab makan, tidur, dan masuk-keluar rumah.",Tantangan terbesar saat ini adalah fitnah gadget dan pengaruh lingkungan. Usia anak yg mulai beranjak remaja dan minimnya peran ayah karena kami tinggal di kota yang berbeda.,"Menurut kami, mendidik adab jauh lebih utama daripada mendidik ilmu
+Mendidik adab harus dimulai sejak dini, dari dalam rumah, dengan kesabaran, kelembutan, keteladanan, dan doa yang tidak putus. Tidak cukup hanya dengan nasihat, tapi orang tua harus menjadi contoh. Dan adab tidak akan kokoh tanpa dibiasakan, diingatkan terus-menerus, dan disekolahkan di lingkungan yang shalih dan sevisi dalam menjaga Al-Qur'an dan Sunnah. Tujuan akhirnya bukan hanya anak yang pintar, tapi anak yang shalih/shalihah dan berakhlak mulia."
+9N5DEKQ,ob829k1,2026-09-21 2:48:44,Ridhky,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Bunda,"mengajarkan lewat contoh dan perilaku sehari hari dengan keluarga, orang tua, dan lingkungan sekitar",tantangan yang dihadapi kadang saya sendiri sebagai ayah ketika sudah selesai bekerja dg tersitanya banyak waktu kerja jadi hanya sesekali saja mengajarkan adab. diluar itu ga ada masalah,contohkan secara diri sendiri pribadi (ayah) ke dalam lingkungan di keluarga maupun di lingkungan luar rumah agar senantiasa bisa dilihat dan dicontoh. serta tidak lupa mengajak anak dan istri mengikuti kajian islam online maupun offline terkait bab mendidik adab yang baik serta mengikuti kajian parenting
+7X529x2,ODx7QZM,2026-09-21 2:51:10,Lusy andriani ,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Dengan pembiasaan kebaikan dalam kehidupan sehari-hari,"Istikomah dalam pembiasaan kebaikan, terkadang kurang sabar menghadapi anak-anak",Baik untuk kehidupan kedepannya
+xVBa4od,RGqDdpv,2026-09-21 3:15:13,Yunus,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Bunda,Berusaha mengajarkan adab sesuai Al-Quran dan sunnah rasulullah shallahuailaihi wasallam ,Tantangan nya anak2 makin menginjak dewasa lebih berat mengingatkan nya karena banyak faktor pengaruh pergaulan dan lingkungan ,Harus berdasarkan tuntunan Al-Quran dan sunnah dalam pendidikan adab 
+YjyWJOW,aQp25E9,2026-09-21 3:20:05,Muhamad Rizal Yogastoro,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Selama ini lebih banyak menekankan adab dalam bermuamalah, terutama jangan sampai menyakiti atau menzalimi orang lain, dimulai dari adik dan kakaknya. Selain itu juga adab menuntut ilmu, salat, dan hal-hal lain sambil berjalan dalam keseharian.",Sejauh ini masih relatif wajar dan belum ada masalah yang terlalu signifikan. Tantangannya lebih ke konsistensi mengingatkan dan membiasakan anak dalam keseharian.,"Menurut saya, bisa mencontoh bagaimana Rasulullah dan para sahabat mendidik anak, yaitu menanamkan adab kepada Allah dan kepada sesama manusia. Tidak hanya lewat nasihat, tapi juga lewat contoh dari orang tua dan pembiasaan sehari-hari."
+PRy5k2x,1AQ94gb,2026-09-21 3:35:28,Sahruddin Lubis,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Bunda,Menyampaikan berkalikali dan kadang kita belum maksimal dalam memberikan contoh,Anak-anak susah diberitahu tentang kebaikan,Adalah hal yang sangat penting
+2j5NYeV,5BaZdWZ,2026-09-21 4:37:21,Mas Siti Hotimah Rahayuningsih,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,"Dengan mengajarkannya secara teori dan praktik, keteladanan, motivasi",Terkadang anak-anak tantrum ,"Mengajarkan adab sesuai dengan tingkat usianya, membersamai dan menjadi teladan bagi anak-anak dalam mempraktikkan adab yang baik, memberikan arahan atau nasihat jika ada hal-hal yang kurang baik"
+e5PeX4E,44lKLYr,2026-09-21 5:09:59,Annisa Nursusanti,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Mengajarkan dirumah setiap hari sesuai kemampuan, juka ada adab yg kurang baik seperti membentak adik langsung diingatkan",Masalah nya terkadang anak belum mendengarkan arahan adab yang sudah diberitahukan oleh orangtuanya,Sangat bagus untuk menunjang adab akhlak yg baik
+zEvD9YM,2E9KL2L,2026-09-21 5:11:48,Linda khilyatul azizah,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Mengajarkan adab dg memberikan contoh dan sesuai umur,Sering memotong pembicaraan,Memberikan contoh
+NqyWzoW,GxORJ6p,2026-09-21 5:25:16,Indriawati,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Mengajarkan adab melalui contoh. Terlebih dahulu orangtua mencontohkan, kemudian mengajarkan adab tersebut kepada anak. Dengan melihat, in sya Allah anak lebih mudah memahami dan mengamalkan adab tersebut","Tantangannya ketika urusan mendidik anak hanya dibebankan ke ibunya, sebetulnya butuh figur maskulinitas dalam pengasuhan. Bagaimana ya ustadz, sebaiknya. Kadang merasa berjuang sendirian di rumah 🥲🥲🥲","Mengajarkan, memberi contoh, mengingatkan jika ada adab yang tidak sengaja tidak dilakukan anak. Penerapan adab itu harus kontinu, sehingga in sya Allah akan menjadi kebiasaan "
+vXbyR58,VLWzMoM,2026-09-21 5:29:21,Ummu Nidya 3C,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,"Selama ini saya mengajarkan adab melalui pemberian contoh langsung (role modeling) dalam keseharian, seperti membiasakan mengucap kata tolong, maaf, dan terima kasih. Saya juga menerapkan pembiasaan rutin sebelum dan sesudah beraktivitas (seperti berdoa sebelum makan atau merapikan mainan kembali) serta membacakan buku cerita islami atau kisah yang mengandung nilai moral moral positif.","Tantangan terbesar saat ini adalah menjaga konsistensi anak, terutama saat anak sedang lelah atau emosinya sedang tidak stabil (mudah tantrum/merajuk). Selain itu, pengaruh dari lingkungan luar (seperti tontonan di internet atau bahasa teman sebaya di luar rumah) terkadang membuat anak meniru perilaku atau kata-kata kurang baik yang belum sempat tersaring.","Menurut saya, mendidik adab yang baik harus dimulai dari keteladanan orang tua terlebih dahulu karena anak adalah peniru yang ulung. Prosesnya juga harus dilakukan dengan kasih sayang, kesabaran yang tinggi, tanpa kekerasan fisik maupun verbal, serta didukung oleh lingkungan rumah yang tenang dan suportif (suasana komunikasi yang hangat)."
+Vpy0ErE,gD89WON,2026-09-21 6:00:46,Ahmad Rudi,Ayah,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Menjelaskan mengenai adab,Tidak konsisten untuk mencontohkan adab yang baik,Dengan cara mencontohkan adab yang baik
+o9QyEVO,Np27boQ,2026-09-21 6:15:33,Nunik agung,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang bersama Ayah,Sesuai yang diajarkan di sekolah,Tidak ada,Menyelaraskan pendidikan di sekolah dan di rumah
+OQyz4jp,xX8Jlv9,2026-09-21 6:27:09,Titin Marlina,Bunda,INIS Cibinong,ONLINE (Zoom dan Youtube),,Melalui Lisan dan Praktik langsung ,"Sulitnya anak-anak mempraktikan yang sudah diajarkan secara lisan, ",Memberi contoh langsung kepada anak lewat adab keseharian
+e5P69oq,GxORagQ,2026-09-21 7:36:08,Dian,Bunda,INIS Cibinong,OFFLINE (Masjid Jami' Sayyidah Khadijah),Saya datang sendiri,Dengan ikut serta memberikan contoh adab yg baik didepan anak.,"terkadang anak perlu diingatkan beberapa kali, tapi semoga itu termasuk dalam proses pembelajarannya ya..","Kami berpandangan tentu dari hukum Allah, kami berusaha mengenalkan jawaban “kenapa kita harus memiliki adab/perbuatan yang baik pada diri sendiri dan orang lain” juga berusaha memberikan contohnyaa"
+
+</script>
+
 <script>
-const SHEET = '13379WmB7Vi9tOH4f54P3OoJeVYh4wW23GMtY4OKv5dc';
-const URL_PESERTA = 'https://opensheet.elk.sh/' + SHEET + '/peserta';
-const URL_FORM    = 'https://opensheet.elk.sh/' + SHEET + '/form';
+(function () {
+  'use strict';
 
-// Whitelist pertanyaan esai yang ditampilkan (persis judul kolom di sheet)
-const PRETEST_QUESTIONS = [
-  'Apa inti dari adab kepada Allah?',
-  'Apa kunci kesuksesan mengajarkan adab kepada peserta didik?',
-  'Apa ciri peserta didik yang beradab kepada Allah?',
-];
-
-const norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
-
-// "8/28/2026 10:50:57" → epoch ms (format Google Sheet, bukan ISO)
-function parseTs(s) {
-  const [d, t] = (s || '').split(' ');
-  if (!d) return 0;
-  const [mo, dy, yr] = d.split('/').map(Number);
-  const [h = 0, mi = 0, se = 0] = (t || '').split(':').map(Number);
-  return new Date(yr, mo - 1, dy, h, mi, se).getTime();
-}
-
-function fmtTs(ms) {
-  if (!ms) return '—';
-  const d = new Date(ms);
-  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-       + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-}
-
-const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
-async function loadData() {
-  // NB: opensheet.elk.sh menolak query parameter apa pun (400) — jangan tambah cache-buster.
-  const get = u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
-  const [pesertaRaw, formRaw] = await Promise.all([get(URL_PESERTA), get(URL_FORM)]);
-
-  const peserta = pesertaRaw.filter(o => o && o.Nama).sort((a, b) => (+a.No || 9e9) - (+b.No || 9e9));
-
-  const byName = new Map();     // nama ternorm → respons Timestamp terbaru
-  const submitCount = new Map();
-  for (const r of formRaw) {
-    const k = norm(r.Nama);
-    if (!k) continue;
-    submitCount.set(k, (submitCount.get(k) || 0) + 1);
-    const cur = byName.get(k);
-    if (!cur || parseTs(r.Timestamp) > parseTs(cur.Timestamp)) byName.set(k, r);
-  }
-
-  const registered = new Set(peserta.map(p => norm(p.Nama)));
-  const yatim = [...byName.keys()].filter(k => !registered.has(k)); // ada di form, tak ada di sheet peserta
-
-  return { peserta, byName, submitCount, yatim };
-}
-
-function highlight(text, q) {
-  if (!q) return esc(text);
-  const i = norm(text).indexOf(q);
-  if (i < 0) return esc(text);
-  return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length));
-}
-
-let DATA = null;
-let activeTab = 0;
-
-function render() {
-  const { peserta, byName, submitCount, yatim } = DATA;
-  const q = norm(document.getElementById('search').value);
-
-  // --- statistik ---
-  const nHadir = peserta.filter(p => byName.has(norm(p.Nama))).length + yatim.length;
-  document.getElementById('stats').innerHTML =
-    '<span><b>' + peserta.length + '</b> peserta terdaftar</span>' +
-    '<span><b>' + nHadir + '</b> mengisi form hadir</span>' +
-    '<span><b>' + (peserta.length - nHadir + yatim.length) + '</b> belum hadir/mengisi</span>';
-
-  // --- Section A: daftar hadir ---
-  let rows = '';
-  const all = peserta.concat(yatim.map(k => ({ No: '', Nama: byName.get(k).Nama, Jabatan: '(tidak terdaftar di sheet peserta)', _yatim: true })));
-  all.forEach((p, idx) => {
-    if (q && !norm(p.Nama).includes(q)) return;
-    const resp = byName.get(norm(p.Nama));
-    const badge = resp
-      ? '<span class="badge ok">Hadir</span>'
-      : '<span class="badge pending">Belum hadir/mengisi</span>';
-    const dupN = submitCount.get(norm(p.Nama)) || 1;
-    rows +=
-      '<tr class="row" data-idx="' + idx + '" data-name="' + esc(norm(p.Nama)) + '">' +
-        '<td class="no">' + esc(p.No) + '</td>' +
-        '<td>' + highlight(p.Nama, q) + (dupN > 1 ? '<span class="dup">' + dupN + '×</span>' : '') +
-          '<div class="jab-line">' + esc(p.Jabatan || '—') + '</div></td>' +
-        '<td>' + badge + '</td>' +
-      '</tr>';
-    if (resp) {
-      const links = PRETEST_QUESTIONS.map((_, qi) =>
-        '<a href="#" onclick="return showAnswer(event,' + qi + ',' + idx + ')">J' + (qi + 1) + '</a>').join(' ');
-      rows +=
-        '<tr class="detail" id="d-' + idx + '" hidden><td colspan="3"><div class="detail-inner">' +
-          '<b>Kehadiran:</b> ' + esc(resp['Kehadiran'] || '—') +
-          ' &nbsp;<b>Waktu isi:</b> ' + fmtTs(parseTs(resp.Timestamp)) +
-          ' &nbsp;<b>Jawaban pretest:</b> ' + links +
-        '</div></td></tr>';
-    } else {
-      rows +=
-        '<tr class="detail" id="d-' + idx + '" hidden><td colspan="3"><div class="detail-inner">' +
-          'Belum mengisi form hadir.' +
-        '</div></td></tr>';
-    }
-  });
-  document.getElementById('tbody').innerHTML =
-    rows || '<tr><td colspan="3" class="empty-state">Tidak ada peserta yang cocok.</td></tr>';
-
-  document.querySelectorAll('tr.row').forEach(tr => {
-    tr.addEventListener('click', () => {
-      const d = document.getElementById('d-' + tr.dataset.idx);
-      if (d) d.hidden = !d.hidden;
-    });
-  });
-
-  // --- Section B: satu tab per pertanyaan; tiap tab berisi jawaban semua responden ---
-  const respondents = all.map((p, idx) => ({ p, idx, resp: byName.get(norm(p.Nama)) })).filter(r => r.resp);
-  if (activeTab >= PRETEST_QUESTIONS.length) activeTab = 0;
-
-  document.getElementById('tabs').innerHTML = PRETEST_QUESTIONS.map((question, qi) => {
-    const n = respondents.filter(r => (String(r.resp[question] || '').trim())).length;
-    return '<button class="tab" role="tab" id="tab-' + qi + '" aria-selected="' + (qi === activeTab) + '"' +
-      ' aria-controls="panel-' + qi + '" tabindex="' + (qi === activeTab ? '0' : '-1') + '"' +
-      ' data-tab="' + qi + '">Pertanyaan ' + (qi + 1) + '<span class="n">' + n + ' jawaban</span></button>';
-  }).join('');
-
-  document.getElementById('panels').innerHTML = PRETEST_QUESTIONS.map((question, qi) => {
-    let body;
-    if (!respondents.length) {
-      body = '<div class="empty-state">Belum ada respons pretest.</div>';
-    } else {
-      body = respondents.map(r => {
-        const ans = String(r.resp[question] || '').trim();
-        return '<div class="ans" id="ans-' + qi + '-' + r.idx + '">' +
-          '<span class="who">' + esc(r.p.Nama) + '</span>' +
-          (r.p.Jabatan ? '<span class="jab">' + esc(r.p.Jabatan) + '</span>' : '') +
-          '<span class="when">' + fmtTs(parseTs(r.resp.Timestamp)) + '</span>' +
-          '<div class="a' + (ans ? '' : ' empty') + '">' + (ans ? esc(ans) : '— belum dijawab') + '</div>' +
-        '</div>';
-      }).join('');
-    }
-    return '<div class="panel" role="tabpanel" id="panel-' + qi + '" aria-labelledby="tab-' + qi + '"' +
-      (qi === activeTab ? '' : ' hidden') + ' tabindex="0"><div class="q">' + esc(question) + '</div>' + body + '</div>';
-  }).join('');
-
-  document.querySelectorAll('.tab').forEach(tb => {
-    tb.addEventListener('click', () => selectTab(+tb.dataset.tab));
-    tb.addEventListener('keydown', e => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-        e.preventDefault();
-        const d = e.key === 'ArrowRight' ? 1 : -1;
-        selectTab((activeTab + d + PRETEST_QUESTIONS.length) % PRETEST_QUESTIONS.length, true);
+  // ============ PARSER CSV (RFC4180, kolom multi-baris dalam kutip) ============
+  function parseCSV(text) {
+    text = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+    var rows = [], row = [], cur = '', inQ = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charAt(i);
+      if (inQ) {
+        if (c === '"') {
+          if (text.charAt(i + 1) === '"') { cur += '"'; i++; } else { inQ = false; }
+        } else { cur += c; }
+      } else {
+        if (c === '"') { inQ = true; }
+        else if (c === ',') { row.push(cur); cur = ''; }
+        else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+        else { cur += c; }
       }
+    }
+    if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+    // buang baris kosong total
+    return rows.filter(function (r) { return r.length > 1 || (r.length === 1 && r[0].trim()); });
+  }
+
+  // ============ UTIL ============
+  var norm = function (s) { return (s || '').trim().toLowerCase().replace(/\s+/g, ' '); };
+  var isEmpty = function (t) { var n = norm(t); return !n || n === '-' || n === '–'; };
+  var esc = function (s) { return (s || '').replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
+  function parseTs(s) {
+    // "2026-09-18 10:19:49"
+    var m = String(s || '').trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2}):(\d{1,2})/);
+    if (!m) return 0;
+    return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime();
+  }
+  var fmtTs = (function () {
+    var BULAN = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    return function (ms) {
+      if (!ms) return '—';
+      var d = new Date(ms);
+      return d.getDate() + ' ' + BULAN[d.getMonth()] + ' ' +
+        ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    };
+  })();
+
+  // ============ ATURAN KLASTER (auto-dinilai ulang tiap update CSV) ============
+  var CLUSTERS = {
+    a1: [
+      { label: 'Keteladanan & contoh', re: /contoh|teladan|tauladan|uswah|role\s?model|perbuatan|praktik|meneladani|eladani|meniru/i },
+      { label: 'Pembiasaan harian', re: /biasakan|biasa|setiap\s?hari|sehari|rutin|pelan|berproses|istiqamah|konsisten/i },
+      { label: 'Nasehat & penjelasan lisan', re: /nasehat|menjelaskan|menasihati|nasihati|bercerita|cerita|menyampaikan|memberi\s?tahu|penjelasan|bilang|omong|mengarajk|ngaj/i },
+      { label: 'Buku & kisah nabi', re: /\bbuku|kisah/i },
+      { label: 'Sesuai syariat & sunnah', re: /syariat|sunnah|quran|qur.?an|tauhid|salaf|rasul|nabi/i },
+      { label: 'Doa', re: /\bdoa/i },
+      { label: 'Shalat & ibadah', re: /sholat|shalat|ibadah/i },
+      { label: 'Sesuai diajarkan di sekolah', re: /sekolah/i }
+    ],
+    a2: [
+      { label: 'Pengaruh lingkungan & teman', re: /lingkungan|teman|pergaulan|tetangga|sosial|sebaya|seusia|pengaruh|kontaminasi|tontonan|sepuan/i },
+      { label: 'Gadget & media sosial', re: /gadget|handphone|\bhp\b|medsos|media.{0,10}sosial|internet|youtube|digital/i },
+      { label: 'Emosi, tantrum & perilaku bicara', re: /emos|tantrum|marah|cengeng|merajuk|menangis|teriak|merengek|lelah|kritis|keras\s?kepala|perdebat|malas|suara|berbicara|memotong|blak\s?blakan|sesuka\s?hati/i },
+      { label: 'Hubungan kakak & adik', re: /kakak|adik/i },
+      { label: 'Konsistensi & kesulitan mendidik', re: /konsisten|sabar|istiqamah|di.{0,3}ingatkan|terus|pelan|kelola|manajemen|lupa|praktik|susah|dengarkan|mengikuti|sejauh ini|tidak selalu/i },
+      { label: 'Minimnya peran ayah / waktu', re: /peran ayah|maskulin|waktu.{0,10}kerja|tinggal di kota|selesai bekerja/i },
+      { label: 'Belum ada masalah', re: /alhamdulillah|tidak\s?ada|gak\s?ada|belum\s?ada/i }
+    ],
+    a3: [
+      { label: 'Keteladanan orang tua', re: /contoh|teladan|tauladan|uswah|role\s?model|eladani/i },
+      { label: 'Pembiasaan & konsisten', re: /biasa|konsisten|rutin|setiap|pelan|berproses|kontinu|terus/i },
+      { label: 'Adab sebelum ilmu', re: /adab\s?sebelum\s?ilmu|adab.{0,30}ilmu|ilmu.{0,30}adab|pondasi/i },
+      { label: "Sesuai Qur'an & sunnah", re: /tauhid|syariat|sunnah|quran|qur.?an|nabi|rasul/i },
+      { label: 'Kolaborasi ortu & sekolah', re: /sekolah|pendidik|guru|kolaborasi|selaras/i },
+      { label: 'Kesabaran & kelembutan', re: /sabar|lembut|kasih|hangat|tanpa kekerasan/i },
+      { label: 'Adab penting & wajib', re: /penting|wajib|harus|perlu|utama/i }
+    ]
+  };
+  var QUESTIONS = [
+    { key: 'a1', num: 1, title: 'Bagaimana @ayah/bunda mengajarkan adab selama ini?' },
+    { key: 'a2', num: 2, title: 'Apa saja masalah atau tantangan berkaitan dengan adab yang sedang dihadapi @ayah/bunda saat ini?' },
+    { key: 'a3', num: 3, title: 'Bagaimana menurut @ayah/bunda tentang mendidik adab anak yang baik?' }
+  ];
+
+  // ============ RINGKASAN / ANALISIS TIAP PERTANYAAN (oleh peneliti) ============
+  // Teks ini adalah analisis hasil, bukan otomatis dari CSV.
+  // Saat CSV di-update berkala, sila perbarui angka & simpulannya di sini.
+  var SUMMARIES = {
+    a1: [
+      '<p><b>Metode pengajaran adab yang dominan adalah keteladanan &amp; memberi contoh</b> — diungkapkan 43 responden (55%), sering dipadukan dengan pembiasaan dan nasehat. Ini konsisten dengan pandangan bahwa anak belajar dengan meniru, bukan sekadar mendengar.</p>',
+      '<p>Setelah itu paling sering disebut <b>nasehat &amp; penjelasan lisan</b> (37, 47%) dan <b>pembiasaan harian</b> (24, 31%). Sebagian orang tua juga menggunakan <b>buku &amp; kisah nabi</b> (14, 18%) dan mengajarnya <b>sesuai syariat &amp; sunnah / teladan Rasulullah</b> (12, 15%). Doa dan penguatan lewat ibadah/shalat muncul sebagai pelengkap.</p>',
+      '<p>Beberapa jawaban menyebut adab <i>"diajarkan sesuai kemampuan/ilmu yang dimiliki"</i> dan <i>"masih berproses"</i> — menandakan sebagian orang tua merasa belum maksimal dan terbuka untuk dibimbing lebih lanjut.</p>'
+    ],
+    a2: [
+      '<p>Tantangan paling besar adalah <b>pengaruh lingkungan &amp; teman di luar rumah</b> (26, 34%) — anak ikut perilaku/kosakata yang kurang baik dari pergaulan, tontonan, atau lingkungan yang tidak sejalan dengan pengajaran di rumah.</p>',
+      '<p>Setelahnya, banyak yang menghadapi <b>menjaga konsistensi &amp; kesulitan mendidik</b> (22, 29%), serta <b>regulasi emosi &amp; tantrum</b> (21, 27%) — anak menangis, teriak, merajuk, keras kepala, atau bicaranya kasar/suara tinggi. Keduanya menjadi beban, terutama karena adab harus diingatkan terus-menerus.</p>',
+      '<p><b>Gadget &amp; media sosial</b> disebut 10 responden (13%), dan sedikit yang mengeluhkan <b>minimnya peran ayah / waktu</b> (3, 4%). 6 responden (8%) menyatakan belum ada masalah; 7 jawaban lainnya terlalu spesifik untuk masuk klaster (melihat tab "Lainnya").</p>'
+    ],
+    a3: [
+      '<p>Konsep yang paling kuat adalah <b>keteladanan orang tua</b> — adab harus diajarkan dengan mencontohkan diri sendiri, 41 responden (53%). Orang tua merasa mereka adalah <i>role model</i> utama anak.</p>',
+      '<p>Mayoritas juga meyakini adab itu <b>penting &amp; wajib</b> (23, 30%) dan harus <b>dibiasakan konsisten &amp; sabar setiap hari</b> (17, 22%). Sebagian menegaskan adab diajarkan <b>sesuai Al-Qur&#39;an &amp; sunnah</b> (15, 19%) dan menekankan <b>kolaborasi selaras antara rumah &amp; sekolah</b> (11, 14%), serta pendekatan <b>lembut tanpa kekerasan</b> (8, 10%).</p>',
+      '<p>Implikasi untuk program: penguatan peran orang tua sebagai teladan + penguatan kesabaran &amp; konsistensi + menyelaraskan pesan rumah–sekolah adalah tiga fokus yang paling sesuai dengan aspirasi responden.</p>'
+    ]
+  };
+
+  // ============ MUAT DATA ============
+  var raw = document.getElementById('csv-data').textContent;
+  var rows = parseCSV(raw);
+  var header = rows.shift();
+  // Map kolom secara longgar (index tetap, jaga-jaga ada beda kecil)
+  var IDX = { sub: 0, rid: 1, at: 2, nama: 3, ortu: 4, region: 5, hadir: 6, teman: 7, a1: 8, a2: 9, a3: 10 };
+
+  var data = [];
+  var seenSub = {};
+  rows.forEach(function (r) {
+    var sub = (r[IDX.sub] || '').trim();
+    if (!sub || seenSub[sub]) return;
+    seenSub[sub] = true;
+    data.push({
+      sub: sub,
+      at: parseTs(r[IDX.at]),
+      nama: (r[IDX.nama] || '').trim(),
+      ortu: (r[IDX.ortu] || '').trim(),
+      hadir: (r[IDX.hadir] || '').trim(),
+      teman: (r[IDX.teman] || '').trim(),
+      a1: (r[IDX.a1] || '').trim(),
+      a2: (r[IDX.a2] || '').trim(),
+      a3: (r[IDX.a3] || '').trim()
     });
   });
-}
+  data = data.filter(function (d) { return d.nama; });
 
-function selectTab(qi, focus) {
-  activeTab = qi;
-  for (let i = 0; i < PRETEST_QUESTIONS.length; i++) {
-    const tb = document.getElementById('tab-' + i), pn = document.getElementById('panel-' + i);
-    if (!tb || !pn) continue;
-    tb.setAttribute('aria-selected', i === qi);
-    tb.tabIndex = i === qi ? 0 : -1;
-    pn.hidden = i !== qi;
+  // Gabungkan nama duplikat (submit lebih dari sekali): jaga jawaban terpanjang
+  var byName = {};
+  data.forEach(function (d) {
+    var k = norm(d.nama);
+    var score = (d.a1 || '').length + (d.a2 || '').length + (d.a3 || '').length;
+    if (!byName[k]) { byName[k] = { list: [d], dup: 1 }; }
+    else { byName[k].dup++; byName[k].list.push(d); }
+  });
+  var peserta = Object.keys(byName).map(function (k) {
+    var g = byName[k];
+    var best = g.list[0];
+    g.list.forEach(function (d) {
+      if ((d.a1||'').length + (d.a2||'').length + (d.a3||'').length >
+          (best.a1||'').length + (best.a2||'').length + (best.a3||'').length) best = d;
+    });
+    return Object.assign({ dup: g.dup }, best);
+  }).sort(function (a, b) { return norm(a.nama).localeCompare(norm(b.nama), 'id'); });
+
+  // ============ REKAPITULASI ============
+  function isOnline(h) { return /^ONLINE/i.test(h || ''); }
+  function isOffline(h) { return /^OFFLINE/i.test(h || ''); }
+
+  // Pasangan (ayah & bunda) yang sama-sama mengisi form OFFLINE.
+  // Mereka terhitung 2× jika dijumlah naif, jadi perlu dikurangi 1× tiap sisi.
+  // PERBARUI daftar ini (nama, case-insensitive) setiap data di-update.
+  var COUPLE_DEDUP = [
+    ['rindra faturohman', 'siti dawiyah'],
+    ['ridhky', 'rizkiwati']
+  ];
+
+  var countA = function (key) { return peserta.filter(function (p) { return !isEmpty(p[key]); }).length; };
+  var tot = peserta.length;
+  var nOn = peserta.filter(function (p) { return isOnline(p.hadir); }).length;
+  // hadir fisik offline:
+  //  ikhwan = form AYAH offline + ayah-ikut (form bunda offline yg "datang bersama Ayah")
+  //  akhwat = form BUNDA offline + bunda-ikut (form ayah offline yg "datang bersama Bunda")
+  //  dikurangi pasangan yang berdua mengisi form (COUPLE_DEDUP)
+  var nOffAyah = peserta.filter(function (p) { return isOffline(p.hadir) && /^ayah/i.test(p.ortu); }).length;
+  var nOffBunda = peserta.filter(function (p) { return isOffline(p.hadir) && /^bunda/i.test(p.ortu); }).length;
+  var compAyah = peserta.filter(function (p) { return isOffline(p.hadir) && /^bunda/i.test(p.ortu) && /bersama ayah/i.test(p.teman); }).length;
+  var compBunda = peserta.filter(function (p) { return isOffline(p.hadir) && /^ayah/i.test(p.ortu) && /bersama bunda/i.test(p.teman); }).length;
+  var dupCouple = COUPLE_DEDUP.filter(function (c) {
+    return peserta.some(function (p) { return isOffline(p.hadir) && norm(p.nama) === norm(c[0]); })
+        && peserta.some(function (p) { return isOffline(p.hadir) && norm(p.nama) === norm(c[1]); });
+  }).length;
+  var nOffIkhwan = nOffAyah + compAyah - dupCouple;
+  var nOffAkhwat = nOffBunda + compBunda - dupCouple;
+  var nOff = nOffIkhwan + nOffAkhwat;
+  var answered = { a1: countA('a1'), a2: countA('a2'), a3: countA('a3') };
+
+  var times = peserta.map(function (p) { return p.at; }).filter(Boolean).sort();
+  document.getElementById('dateRange').textContent =
+    times.length ? fmtTs(times[0]) + ' – ' + fmtTs(times[times.length - 1]) : '—';
+
+  document.getElementById('cards').innerHTML =
+    '<div class="card"><div class="num">' + nOn + '</div><div class="lbl">online · zoom/youtube</div></div>' +
+    '<div class="card hl"><div class="num">' + nOff + '</div><div class="lbl">offline · masjid</div></div>' +
+    '<div class="card sub"><div class="num">' + nOffAkhwat + '</div><div class="lbl">offline · akhwat (bunda)</div></div>' +
+    '<div class="card sub"><div class="num">' + nOffIkhwan + '</div><div class="lbl">offline · ikhwan (ayah)</div></div>';
+
+  document.getElementById('stats').innerHTML =
+    '<span><b>' + tot + '</b> peserta unik</span>';
+
+  var activeTab = 0;
+
+  // ============ KLASTER JAWABAN ============
+  function groupByAnswer(items) {
+    // items: [{nama, at, text}] → gabung teks yang sama (normalisasi)
+    var map = {};
+    items.forEach(function (it) {
+      var k = norm(it.text);
+      if (!map[k]) map[k] = { text: it.text, names: [], ats: [] };
+      map[k].names.push(it.nama);
+      map[k].ats.push(it.at);
+    });
+    return Object.keys(map).map(function (k) { return map[k]; })
+      .sort(function (a, b) { return b.names.length - a.names.length; });
   }
-  if (focus) document.getElementById('tab-' + qi).focus();
-}
 
-// Lompat dari Section A ke jawaban peserta tertentu di tab pertanyaan qi
-function showAnswer(e, qi, idx) {
-  e.preventDefault();
-  selectTab(qi);
-  const el = document.getElementById('ans-' + qi + '-' + idx);
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), 1500);
+  function renderPanels() {
+    var q = norm(document.getElementById('search').value);
+    if (activeTab >= QUESTIONS.length) activeTab = 0;
+
+    document.getElementById('tabs').innerHTML = QUESTIONS.map(function (qq, qi) {
+      var n = peserta.filter(function (p) { return !isEmpty(p[qq.key]); }).length;
+      return '<button class="tab" role="tab" id="tab-' + qi + '" aria-selected="' + (qi === activeTab) + '"' +
+        ' aria-controls="panel-' + qi + '" tabindex="' + (qi === activeTab ? '0' : '-1') + '" data-tab="' + qi + '">' +
+        'Pertanyaan ' + qq.num + '<span class="n">' + n + ' jawaban</span></button>';
+    }).join('');
+
+    document.getElementById('panels').innerHTML = QUESTIONS.map(function (qq, qi) {
+      var items = peserta
+        .filter(function (p) { return !isEmpty(p[qq.key]); })
+        .filter(function (p) { return !q || norm(p.nama).indexOf(q) >= 0; })
+        .map(function (p) { return { nama: p.nama, at: p.at, text: p[qq.key] }; });
+
+      var total = items.length || 1;
+      // hitung tiap klaster dulu, lalu urutkan dari yang terbanyak responden
+      var clusters = CLUSTERS[qq.key].map(function (cl) {
+        var matched = items.filter(function (it) { return cl.re.test(it.text); });
+        var names = matched.map(function (m) { return m.nama; });
+        var uniq = new Set(names.map(norm)).size;
+        return { cl: cl, matched: matched, uniq: uniq, pct: Math.round((uniq / total) * 100) };
+      }).sort(function (a, b) { return b.uniq - a.uniq; });
+      var other = [];
+      var html = clusters.map(function (c) {
+        var cl = c.cl, matched = c.matched;
+        var groups = groupByAnswer(matched);
+        var pct = c.pct;
+        var body = groups.map(function (g) {
+          var w = g.names.length > 1
+            ? '<span class="dupn">×' + g.names.length + '</span>'
+            : '';
+          var when = g.ats.map(fmtTs).filter(Boolean).join(' · ');
+          return '<div class="ans" data-q="' + qq.key + '">' +
+            (w ? '<span class="who">' + w + '</span>' : '') +
+            (when ? '<span class="when">' + when + '</span>' : '') +
+            '<div class="a">' + esc(g.text.replace(/\n+/g, '  ')) + '</div></div>';
+        }).join('') || '<div class="ans"><div class="a empty">—</div></div>';
+        return '<details class="cluster">' +
+          '<summary><span>' + esc(cl.label) + '</span><span class="n">' + c.uniq + ' responden</span><span class="pct">' + pct + '%</span></summary>' +
+          '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
+          '<div>' + body + '</div></details>';
+      }).join('');
+
+      // jawaban yang tidak masuk klaster apa pun
+      var matchedAny = items.filter(function (it) {
+        return clusters.some(function (c) { return c.cl.re.test(it.text); });
+      });
+      other = items.filter(function (it) {
+        return !matchedAny.some(function (m) { return norm(m.text) === norm(it.text); });
+      });
+      var otherGroups = groupByAnswer(other);
+      var otherHtml = otherGroups.length ?
+        '<details class="cluster"><summary><span>Lainnya (tidak masuk klaster)</span>' +
+        '<span class="n">' + otherGroups.length + ' responden</span></summary>' +
+        '<div>' + otherGroups.map(function (g) {
+          var w = g.names.length > 1 ? '<span class="dupn">×' + g.names.length + '</span>' : '';
+          return '<div class="ans">' +
+            (w ? '<span class="who">' + w + '</span>' : '') +
+            '<div class="a">' + esc(g.text.replace(/\n+/g, '  ')) + '</div></div>';
+        }).join('') + '</div></details>' : '';
+
+      var na = peserta.length - items.length;
+      return '<div class="panel" role="tabpanel" id="panel-' + qi + '" aria-labelledby="tab-' + qi + '"' +
+        (qi === activeTab ? '' : ' hidden') + ' tabindex="0">' +
+        '<div class="q">P' + qq.num + ' · ' + esc(qq.title) + '</div>' +
+        '<div class="summary"><h3>Analisis Ringkas</h3>' +
+          (SUMMARIES[qq.key] || []).join('') +
+          '<p class="src">Kesimpulan dari analisis jawaban terbuka (' + items.length + ' responden mengisi); angka klaster di bawah dihitung otomatis dari kata kunci.</p></div>' +
+        '<div class="method">Klaster dihitung otomatis dari kata kunci; 1 jawaban bisa masuk beberapa klaster.</div>' +
+        html + otherHtml +
+        '<div class="notanswered"><b>' + (peserta.length - items.length) + '</b> responden belum menjawab / jawaban kosong.</div>' +
+        '</div>';
+    }).join('');
+
+    document.querySelectorAll('.tab').forEach(function (tb) {
+      tb.addEventListener('click', function () { selectTab(+tb.dataset.tab); });
+      tb.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          var d = e.key === 'ArrowRight' ? 1 : -1;
+          selectTab((activeTab + d + QUESTIONS.length) % QUESTIONS.length, true);
+        }
+      });
+    });
   }
-  return false;
-}
 
-async function load() {
-  const err = document.getElementById('error');
-  err.style.display = 'none';
-  document.getElementById('tbody').innerHTML = '<tr><td colspan="3" class="empty-state">Memuat data…</td></tr>';
+  function selectTab(qi, focus) {
+    activeTab = qi;
+    QUESTIONS.forEach(function (_, i) {
+      var tb = document.getElementById('tab-' + i), pn = document.getElementById('panel-' + i);
+      if (!tb || !pn) return;
+      tb.setAttribute('aria-selected', i === qi);
+      tb.tabIndex = i === qi ? 0 : -1;
+      pn.hidden = i !== qi;
+    });
+    if (focus) document.getElementById('tab-' + qi).focus();
+  }
+
+  // ============ INIT ============
+  document.getElementById('search').addEventListener('input', function () { renderPanels(); });
+  document.getElementById('loadedAt').textContent =
+    new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) +
+    ' ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
   try {
-    DATA = await loadData();
-    document.getElementById('loadedAt').textContent = new Date().toLocaleTimeString('id-ID');
-    render();
+    if (!peserta.length) throw new Error('tidak ada baris data');
+    renderPanels();
   } catch (e) {
-    err.textContent = 'Gagal memuat data (' + e.message + '). Periksa koneksi lalu klik Muat ulang.';
+    var err = document.getElementById('error');
+    err.textContent = 'Gagal memuat data tertanam (' + e.message + '). Periksa blok <script id="csv-data"> di file ini.';
     err.style.display = 'block';
-    document.getElementById('tbody').innerHTML = '<tr><td colspan="3" class="empty-state">Data tidak tersedia.</td></tr>';
   }
-}
-
-document.getElementById('search').addEventListener('input', () => { if (DATA) render(); });
-document.getElementById('refresh').addEventListener('click', load);
-window.addEventListener('DOMContentLoaded', () => { load(); document.getElementById('search').focus(); });
+})();
 </script>
 </body>
 </html>
