@@ -81,7 +81,7 @@
   }
 
   /* ---- rekapitulasi ---- */
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .6rem; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .6rem; align-items: start; }
   .card {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 10px; padding: .7rem .85rem; box-shadow: var(--shadow);
@@ -89,9 +89,9 @@
   .card .num { font-size: 1.45rem; font-weight: 700; color: var(--accent); }
   .card .lbl { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
   .card.hl .num { color: var(--fg); }
-  .card.sub { background: var(--accent-soft); border-color: #cfe0d3; }
-  .card.sub .num { font-size: 1.15rem; }
-  .card.sub .lbl { color: var(--accent); }
+  .card .subs { display: flex; gap: 1.4rem; margin-top: .6rem; padding-top: .55rem; border-top: 1px dashed var(--border); }
+  .card .subs .s b { display: block; font-size: 1.05rem; font-weight: 700; color: var(--accent); }
+  .card .subs .s em { font-style: normal; font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 
   /* ---- tab pertanyaan ---- */
   .tabs { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .8rem; }
@@ -492,9 +492,9 @@ kbxy8Xe,Zjb2qGV,2026-09-21 8:44:43,Mailinda Pangesti Puji W,Bunda,INIS Cibinong,
 
   document.getElementById('cards').innerHTML =
     '<div class="card"><div class="num">' + nOn + '</div><div class="lbl">online · zoom/youtube</div></div>' +
-    '<div class="card hl"><div class="num">' + nOff + '</div><div class="lbl">offline · masjid</div></div>' +
-    '<div class="card sub"><div class="num">' + nOffAkhwat + '</div><div class="lbl">offline · akhwat (bunda)</div></div>' +
-    '<div class="card sub"><div class="num">' + nOffIkhwan + '</div><div class="lbl">offline · ikhwan (ayah)</div></div>';
+    '<div class="card hl"><div class="num">' + nOff + '</div><div class="lbl">offline · masjid</div>' +
+      '<div class="subs"><span class="s"><b>' + nOffAkhwat + '</b><em>akhwat · bunda</em></span>' +
+      '<span class="s"><b>' + nOffIkhwan + '</b><em>ikhwan · ayah</em></span></div></div>';
 
   document.getElementById('stats').innerHTML =
     '<span><b>' + tot + '</b> peserta unik</span>';
